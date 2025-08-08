@@ -27,6 +27,7 @@ public class GridGenerator : MonoBehaviour
             {
                 GameObject tile = Instantiate(tilePrefab, new Vector3(x, 0, z), Quaternion.identity);
                 tile.name = $"Cube_{x}_{z}";//set the name usingg string interpolation
+
                 tile.AddComponent<TileInfo>().SetPosition(x, z);//dynamically add tileinfo and set pos of the tile
                 tile.transform.parent = transform;//seting this tile's parent to the gridGenerator's transform
                 grid[x, z] = tile;//storing it
@@ -48,6 +49,7 @@ public class GridGenerator : MonoBehaviour
                 if (tile != null)
                 {
                     text.SetText($"Grid Position: ({tile.GetX()}, {tile.GetZ()})");//set the text
+                    // text.SetText($"Grid Position: ({tile.GetX() + 1}, {tile.GetZ() + 1})");//uncomment this line if you want 1 based indexing
                 }
             }
         }
