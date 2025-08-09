@@ -21,7 +21,7 @@ public class ObstacleManager : MonoBehaviour
                 if (obstacleData.obstacles[x].row[z])//checks if the box is true
                 {
                     GameObject newObstacle = Instantiate(obstacle, new Vector3(x, 1f, z), Quaternion.identity);//if then instantiate a obstacle
-                    newObstacle.GetComponent<Renderer>().material.color = Color.green;
+                    
 
                 }
             }
