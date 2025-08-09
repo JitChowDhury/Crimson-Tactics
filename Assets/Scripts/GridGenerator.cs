@@ -9,14 +9,18 @@ public class GridGenerator : MonoBehaviour
     [SerializeField] private int gridSize = 10;
     [SerializeField] private TextMeshProUGUI text;
 
+
     // 2d gameobject array
     private GameObject[,] grid;
+    private GameObject lastHighlight;
+
 
     void Start()
     {
         //allocate the array
         grid = new GameObject[gridSize, gridSize];
         GenerateGrid();
+
     }
 
     void GenerateGrid()
@@ -31,6 +35,12 @@ public class GridGenerator : MonoBehaviour
                 tile.AddComponent<TileInfo>().SetPosition(x, z);//dynamically add tileinfo and set pos of the tile
                 tile.transform.parent = transform;//seting this tile's parent to the gridGenerator's transform
                 grid[x, z] = tile;//storing it
+
+                Transform hoverChild = tile.transform.Find("hoverTile");
+                if (hoverChild != null)
+                {
+                    hoverChild.gameObject.SetActive(false);
+                }
 
             }
         }
@@ -50,8 +60,34 @@ public class GridGenerator : MonoBehaviour
                 {
                     text.SetText($"Grid Position: ({tile.GetX()}, {tile.GetZ()})");//set the text
                     // text.SetText($"Grid Position: ({tile.GetX() + 1}, {tile.GetZ() + 1})");//uncomment this line if you want 1 based indexing
+
+                    if (lastHighlight != null)
+                    {
+                        lastHighlight.SetActive(false);
+                    }
+
+                    // Show current highlight
+                    Transform hoverChild = tile.transform.Find("hoverTile");
+                    if (hoverChild != null)
+                    {
+                        hoverChild.gameObject.SetActive(true);
+                        lastHighlight = hoverChild.gameObject;
+                    }
                 }
+            }
+        }
+        else
+        {
+            //hide last highlight when not hoverring any tile
+            if (lastHighlight != null)
+            {
+                lastHighlight.SetActive(false);
+                lastHighlight = null;
             }
         }
     }
 }
+
+
+
+
