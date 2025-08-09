@@ -5,6 +5,7 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     [SerializeField] private ObstacleData obstacleData; // Reference to obstacle grid
+    [SerializeField] private Animator animator;
 
     //current grid pos of player
     private int currentX = 0;
@@ -118,9 +119,19 @@ public class PlayerMovement : MonoBehaviour
     IEnumerator MoveAlongPath(List<Vector3> path)
     {
         isMoving = true;//disable new movement
+        animator.SetBool("IsWalking", true);
 
         foreach (var step in path)
         {
+            //determine direction to the next step
+            Vector3 direction = (new Vector3(step.x, 0.9f, step.z) - transform.position).normalized;
+            //rotate towards the direction
+            if (direction != Vector3.zero)
+            {
+                Quaternion lookRotation = Quaternion.LookRotation(direction);
+                transform.rotation = lookRotation;
+            }
+
             Vector3 targetPos = new Vector3(step.x, 0.9f, step.z);//target pos
             while (Vector3.Distance(transform.position, targetPos) > 0.01f)//move until very close
             {
@@ -132,6 +143,7 @@ public class PlayerMovement : MonoBehaviour
             currentZ = (int)step.z;
         }
 
+        animator.SetBool("IsWalking", false);
         isMoving = false;//allow to move again
     }
 }
