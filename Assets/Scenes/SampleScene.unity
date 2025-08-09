@@ -622,6 +622,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1166260128}
   - component: {fileID: 1166260127}
+  - component: {fileID: 1166260129}
   m_Layer: 0
   m_Name: GridManager
   m_TagString: Untagged
@@ -659,6 +660,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1166260129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1166260126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adfed50c7e311a3488d0502e2c40b779, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  obstacleData: {fileID: 11400000, guid: 3463a91b4a277b442a9dcb1cecf5f235, type: 2}
+  obstacle: {fileID: 3954810975224387915, guid: d7cd044938fa5604d8f254705dd0fba5, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
