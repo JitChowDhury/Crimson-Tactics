@@ -5,6 +5,8 @@ public class ObstacleTool : EditorWindow
 {
     public ObstacleData obstacleData; //holds the 10 10 grid
 
+    private const string obstacleDataPath = "Assets/Data/ObstacleData.asset";
+
     [MenuItem("Tools/Obstacle Tool")]//creates the tool
     public static void ShowWindow()
     {
@@ -39,6 +41,13 @@ public class ObstacleTool : EditorWindow
         {
             EditorUtility.SetDirty(obstacleData);//when save is clicked then then it mark it as dirty so unity knows that its changed
             AssetDatabase.SaveAssets();//save the changes
+        }
+    }
+    private void OnEnable()
+    {
+        if (obstacleData == null)
+        {
+            obstacleData = AssetDatabase.LoadAssetAtPath<ObstacleData>(obstacleDataPath);
         }
     }
 }
