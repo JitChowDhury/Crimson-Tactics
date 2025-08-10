@@ -4,8 +4,10 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public static System.Action OnPlayerMoveComplete;
     [SerializeField] private ObstacleData obstacleData; // Reference to obstacle grid
     [SerializeField] private Animator animator;
+    [SerializeField] private AudioSource click;
 
     //current grid pos of player
     private int currentX = 0;
@@ -20,6 +22,7 @@ public class PlayerMovement : MonoBehaviour
         //if not moving and mouse click
         if (!isMoving && Input.GetMouseButtonDown(0))
         {
+            click.Play();
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
             //checks if the ray hits something
@@ -145,5 +148,6 @@ public class PlayerMovement : MonoBehaviour
 
         animator.SetBool("IsWalking", false);
         isMoving = false;//allow to move again
+        OnPlayerMoveComplete?.Invoke();
     }
 }
