@@ -3,51 +3,52 @@ using UnityEditor;
 
 public class ObstacleTool : EditorWindow
 {
-    public ObstacleData obstacleData; //holds the 10 10 grid
+    public ObstacleData obstacleData;//reference to the object
 
-    private const string obstacleDataPath = "Assets/Data/ObstacleData.asset";
-
-    [MenuItem("Tools/Obstacle Tool")]//creates the tool
+    [MenuItem("Tools/Obstacle Tool")]
+    //opens the windoww
     public static void ShowWindow()
     {
-        GetWindow<ObstacleTool>("Obstacle Tool");//opens the window
+        GetWindow<ObstacleTool>("Obstacle Tool");
     }
 
+    //its called by unity everyt frame while editor is open
     void OnGUI()
     {
-        GUILayout.Label("Obstacle Grid Editor", EditorStyles.boldLabel); //adding the tutle
+        GUILayout.Label("Obstacle Grid Editor", EditorStyles.boldLabel);//displays the title
 
-        //creates a box where i need to drop the obstacledata asset
-        obstacleData = (ObstacleData)EditorGUILayout.ObjectField("Obstacle Data", obstacleData, typeof(ObstacleData), false);
-
+        //asset can be manually changed
+        obstacleData = (ObstacleData)EditorGUILayout.ObjectField(
+            "Obstacle Data",
+            obstacleData,
+            typeof(ObstacleData),
+            false
+        );
+        //safety check
         if (obstacleData == null)
         {
-            EditorGUILayout.HelpBox("Please assign an obstacleData asset to edit.", MessageType.Info);//a message
+            EditorGUILayout.HelpBox("Assign an ObstacleData asset to edit.", MessageType.Info);
             return;
         }
 
         for (int x = 0; x < 10; x++)
         {
-            //start a row and put 10 toggle box side by side then in next loop next line and goes on
             EditorGUILayout.BeginHorizontal();
             for (int z = 0; z < 10; z++)
-            {
-                obstacleData.obstacles[x].row[z] = EditorGUILayout.Toggle(obstacleData.obstacles[x].row[z], GUILayout.Width(40));//40px width buttons
+            {   //draws one toggle per tile
+                //directly edits the scriptable object data
+                obstacleData.obstacles[x].row[z] =
+                    EditorGUILayout.Toggle(obstacleData.obstacles[x].row[z], GUILayout.Width(25));
+
             }
             EditorGUILayout.EndHorizontal();
         }
-
+        //save button
         if (GUILayout.Button("Save"))
         {
-            EditorUtility.SetDirty(obstacleData);//when save is clicked then then it mark it as dirty so unity knows that its changed
-            AssetDatabase.SaveAssets();//save the changes
-        }
-    }
-    private void OnEnable()
-    {
-        if (obstacleData == null)
-        {
-            obstacleData = AssetDatabase.LoadAssetAtPath<ObstacleData>(obstacleDataPath);
+            //marks the scriptable object as modified
+            EditorUtility.SetDirty(obstacleData);
+            AssetDatabase.SaveAssets();
         }
     }
 }

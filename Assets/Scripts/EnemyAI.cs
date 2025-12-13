@@ -1,172 +1,163 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyAI : MonoBehaviour, AI
 {
-    [SerializeField] private ObstacleData obstacleData;//reference to the obstacle data
-    [SerializeField] private Transform playerTransform;
-    [SerializeField] private Animator animator;
-    //enemy's current grid position
+    [SerializeField] private ObstacleData obstacleData; // shared obstacle grid
+    [SerializeField] private Animator animator;         // enemy animations ( I havent added any for now same as playermovement)
+
+    // current grid position
     private int currentX;
     private int currentZ;
-    private bool isMoving = false;
 
-    //stores the path the enemy will follow
-    private List<Vector3> path = new List<Vector3>();
+    // movement lock
+    private bool isMoving;
 
-    //subscribe and unsubscribe to events
+    // register this Ai with the central AI manager
     private void OnEnable()
     {
-        PlayerMovement.OnPlayerMoveComplete += HandlePlayerMoveComplete;
+        FindFirstObjectByType<AIManager>()?.Register(this);
     }
 
+    // unregister when disabled
     private void OnDisable()
     {
-        PlayerMovement.OnPlayerMoveComplete -= HandlePlayerMoveComplete;
+        FindFirstObjectByType<AIManager>()?.Unregister(this);
     }
 
     void Start()
     {
-        //current positiom
+        // initialize grid position from world position
         currentX = Mathf.RoundToInt(transform.position.x);
         currentZ = Mathf.RoundToInt(transform.position.z);
+
+        // auto correct spawn if enemy starts on obstacle
+        if (IsObstacle(currentX, currentZ))
+        {
+            Vector2Int safe = FindNearestSafeTile(currentX, currentZ);
+            transform.position = new Vector3(safe.x, 0.9f, safe.y);
+            currentX = safe.x;
+            currentZ = safe.y;
+        }
     }
 
-    public void UpdateAI()
+    // called by AIManager after player finishes moving
+    public void OnPlayerMoved(Vector2Int playerGridPos)
     {
+        // do not interrupt ongoing movement
+        if (isMoving) return;
 
-    }
+        // choose one valid adjacent tile near the player
+        Vector2Int target = GetAdjacentTile(playerGridPos);
+        if (target == Vector2Int.zero) return;
 
-    private void HandlePlayerMoveComplete()
-    {
-        if (isMoving) return;//if player moving then return
+        // forbid enemy from stepping onto player's tile
+        List<Vector2Int> forbidden = new List<Vector2Int>();
+        forbidden.Add(playerGridPos);
 
-        //get player pos
-        Vector2Int playerPos = new Vector2Int(
-            Mathf.RoundToInt(playerTransform.position.x),
-            Mathf.RoundToInt(playerTransform.position.z)
+        // request path from shared pathfinding system
+        List<Vector3> path = PathfindingManager.FindPath(
+            new Vector2Int(currentX, currentZ),
+            target,
+            obstacleData,
+            forbidden
         );
 
-        Vector2Int targetAdjacent = GetAdjacentToPlayer(playerPos);
-
-        if (targetAdjacent != Vector2Int.zero)
-        {
-            path = FindPath(currentX, currentZ, targetAdjacent.x, targetAdjacent.y);
-            if (path != null && path.Count > 0)
-            {
-                StartCoroutine(MoveAlongPath(path));
-            }
-        }
+        // move only if path is valid
+        if (path != null && path.Count > 0)
+            StartCoroutine(MoveAlongPath(path));
     }
-    //return adjacnet grid
-    Vector2Int GetAdjacentToPlayer(Vector2Int playerPos)
+
+    // selects the first valid adjacent tile around the player
+    Vector2Int GetAdjacentTile(Vector2Int playerPos)
     {
-        Vector2Int[] directions = {
-            Vector2Int.up, Vector2Int.down,
-            Vector2Int.left, Vector2Int.right
+        Vector2Int[] dirs =
+        {
+            Vector2Int.up,
+            Vector2Int.down,
+            Vector2Int.left,
+            Vector2Int.right
         };
 
-        foreach (var dir in directions)
+        foreach (var d in dirs)
         {
-            Vector2Int adjacent = playerPos + dir;
-            if (IsInsideGrid(adjacent.x, adjacent.y) && !IsObstacle(adjacent.x, adjacent.y))
-            {
-                return adjacent;
-            }
+            Vector2Int adj = playerPos + d;
+            if (IsInsideGrid(adj.x, adj.y) && !IsObstacle(adj.x, adj.y))
+                return adj;
         }
+
         return Vector2Int.zero;
     }
-    //check inside grid or a obstacle
+
+    // grid bounds check
     bool IsInsideGrid(int x, int z)
     {
         return x >= 0 && x < 10 && z >= 0 && z < 10;
     }
 
+    // obstacle lookup
     bool IsObstacle(int x, int z)
     {
-        if (obstacleData == null) return false;
-        return obstacleData.obstacles[x].row[z]; // fixed index for 2D array
+        return obstacleData.obstacles[x].row[z];
     }
-    //find path using bfs algo
-    List<Vector3> FindPath(int startX, int startZ, int targetX, int targetZ)
+
+    // finds nearest non obstacle tile around spawn
+    Vector2Int FindNearestSafeTile(int x, int z)
     {
-        if (IsObstacle(targetX, targetZ)) return null;
-
-        Queue<Vector3> queue = new Queue<Vector3>();
-        Dictionary<Vector3, Vector3> cameFrom = new Dictionary<Vector3, Vector3>();
-        Vector3 start = new Vector3(startX, 0, startZ);
-        Vector3 target = new Vector3(targetX, 0, targetZ);
-
-        queue.Enqueue(start);
-        cameFrom[start] = start;
-
-        Vector3[] directions = {
-            new Vector3(1,0,0), new Vector3(-1,0,0),
-            new Vector3(0,0,1), new Vector3(0,0,-1)
-        };
-
-        while (queue.Count > 0)
+        for (int radius = 1; radius < 10; radius++)
         {
-            Vector3 current = queue.Dequeue();
-            if (current == target) break;
-
-            foreach (var dir in directions)
+            for (int dx = -radius; dx <= radius; dx++)
             {
-                Vector3 neighbor = current + dir;
-                int nx = (int)neighbor.x;
-                int nz = (int)neighbor.z;
-
-                if (IsInsideGrid(nx, nz) && !IsObstacle(nx, nz) && !cameFrom.ContainsKey(neighbor))
+                for (int dz = -radius; dz <= radius; dz++)
                 {
-                    queue.Enqueue(neighbor);
-                    cameFrom[neighbor] = current;
+                    int nx = x + dx;
+                    int nz = z + dz;
+
+                    if (IsInsideGrid(nx, nz) && !IsObstacle(nx, nz))
+                        return new Vector2Int(nx, nz);
                 }
             }
         }
 
-        if (!cameFrom.ContainsKey(target)) return null;
-
-        List<Vector3> finalPath = new List<Vector3>();
-        Vector3 currentPathTile = target;
-
-        while (currentPathTile != start)
-        {
-            finalPath.Insert(0, currentPathTile);
-            currentPathTile = cameFrom[currentPathTile];
-        }
-
-        return finalPath;
+        return new Vector2Int(0, 0); // fallback
     }
-    //move along the path returned by the algo
+
+    // moves enemy step by step along computed path
     IEnumerator MoveAlongPath(List<Vector3> path)
     {
         isMoving = true;
+
+        //lock global movement while enemy moves
+        AIManager.SetMovementState(true);
+
         if (animator) animator.SetBool("IsWalking", true);
 
         foreach (var step in path)
         {
-            Vector3 targetPos = new Vector3(step.x, 0.9f, step.z);
-            Vector3 direction = (targetPos - transform.position).normalized;
+            Vector3 target = new Vector3(step.x, 0.9f, step.z);
+            Vector3 dir = (target - transform.position).normalized;
 
-            if (direction != Vector3.zero)
-            {
-                Quaternion lookRotation = Quaternion.LookRotation(direction);
-                transform.rotation = lookRotation;
-            }
+            //rotate towards movement direction
+            if (dir != Vector3.zero)
+                transform.rotation = Quaternion.LookRotation(dir);
 
-            while (Vector3.Distance(transform.position, targetPos) > 0.01f)
+            //smooth movement to next tile
+            while (Vector3.Distance(transform.position, target) > 0.01f)
             {
-                transform.position = Vector3.MoveTowards(transform.position, targetPos, Time.deltaTime * 5f);
+                transform.position =
+                    Vector3.MoveTowards(transform.position, target, Time.deltaTime * 3f);
                 yield return null;
             }
 
-            currentX = (int)step.x;
-            currentZ = (int)step.z;
+            // update grid position
+            currentX = Mathf.RoundToInt(step.x);
+            currentZ = Mathf.RoundToInt(step.z);
         }
 
+        // stop animation and unlock movement
         if (animator) animator.SetBool("IsWalking", false);
         isMoving = false;
+        AIManager.SetMovementState(false);
     }
 }
